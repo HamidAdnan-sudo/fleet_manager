@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:fleet_manager/core/constants/app_colors.dart';
 
 /// Shows an existing truck's details, or acts as an "Add Truck" form

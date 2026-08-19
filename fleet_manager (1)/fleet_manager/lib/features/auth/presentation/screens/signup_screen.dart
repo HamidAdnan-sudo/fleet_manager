@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:fleet_manager/core/constants/app_colors.dart';
 import 'package:fleet_manager/core/constants/app_strings.dart';
 import 'package:fleet_manager/core/router/app_router.dart';
+import 'package:fleet_manager/core/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -33,10 +35,27 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() => _loading = false);
-    context.go(AppRoutes.main);
+    try {
+      final res = await SupabaseService.client.auth.signUp(
+        password: _passwordController.text.trim(),
+        email: _emailController.text.trim(),
+      );
+      if (res.user != null) {
+        if (!mounted) return;
+        context.go(AppRoutes.main);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Check your email to confirm account')));
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
