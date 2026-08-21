@@ -3,12 +3,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fleet_manager/core/constants/app_colors.dart';
 import 'package:fleet_manager/core/router/app_router.dart';
+import 'package:fleet_manager/core/services/profile_service.dart';
+import 'package:fleet_manager/core/supabase_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  Future<void> _logout(BuildContext context) async {
+    await SupabaseService.client.auth.signOut();
+    ProfileService.clear();
+    if (!context.mounted) return;
+    context.go(AppRoutes.login);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final profile = ProfileService.current;
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
@@ -27,17 +37,25 @@ class ProfileScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hamid',
+                    profile?.fullName?.isNotEmpty == true
+                        ? profile!.fullName!
+                        : (profile?.email ?? 'Signed in user'),
                     style: GoogleFonts.spaceGrotesk(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary),
                   ),
                   Text(
-                    'Fleet Manager',
+                    profile?.roleLabel ?? '—',
                     style: GoogleFonts.inter(
                         fontSize: 13, color: AppColors.textSecondary),
                   ),
+                  if (profile?.company != null && profile!.company!.isNotEmpty)
+                    Text(
+                      profile.company!,
+                      style: GoogleFonts.inter(
+                          fontSize: 12, color: AppColors.textSecondary),
+                    ),
                 ],
               ),
             ],
@@ -65,7 +83,7 @@ class ProfileScreen extends StatelessWidget {
                       color: AppColors.highwayOrange),
                   title: const Text('Log out',
                       style: TextStyle(color: AppColors.highwayOrange)),
-                  onTap: () => context.go(AppRoutes.login),
+                  onTap: () => _logout(context),
                 ),
               ],
             ),

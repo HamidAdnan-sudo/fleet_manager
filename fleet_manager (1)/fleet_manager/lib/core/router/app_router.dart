@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:fleet_manager/core/supabase_service.dart';
 import 'package:fleet_manager/features/auth/presentation/screens/splash_screen.dart';
 import 'package:fleet_manager/features/auth/presentation/screens/login_screen.dart';
 import 'package:fleet_manager/features/auth/presentation/screens/signup_screen.dart';
@@ -23,6 +24,15 @@ abstract class AppRoutes {
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: AppRoutes.splash,
+    redirect: (context, state) {
+      final loggedIn = SupabaseService.client.auth.currentSession != null;
+      final loc = state.matchedLocation;
+      final isPublicRoute = loc == AppRoutes.splash || loc == AppRoutes.login || loc == AppRoutes.signup;
+
+      if (!loggedIn && !isPublicRoute) return AppRoutes.login;
+      if (loggedIn && (loc == AppRoutes.login || loc == AppRoutes.signup)) return AppRoutes.main;
+      return null;
+    },
     routes: [
       GoRoute(
         path: AppRoutes.splash,

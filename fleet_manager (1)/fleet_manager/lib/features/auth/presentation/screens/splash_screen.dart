@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:fleet_manager/core/constants/app_colors.dart';
 import 'package:fleet_manager/core/constants/app_strings.dart';
 import 'package:fleet_manager/core/router/app_router.dart';
+import 'package:fleet_manager/core/services/profile_service.dart';
+import 'package:fleet_manager/core/supabase_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,9 +19,30 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
+    _resolveInitialRoute();
+  }
+
+  Future<void> _resolveInitialRoute() async {
+    // Keep the brand animation visible for a moment, then route based on
+    // whether there's already a signed-in session.
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    final session = SupabaseService.client.auth.currentSession;
+    if (session == null) {
+      context.go(AppRoutes.login);
+      return;
+    }
+
+    try {
+      await ProfileService.fetchCurrent();
+      if (!mounted) return;
+      context.go(AppRoutes.main);
+    } catch (_) {
+      // Session exists but couldn't be validated against the backend —
+      // send back to login rather than showing a broken main screen.
       if (mounted) context.go(AppRoutes.login);
-    });
+    }
   }
 
   @override

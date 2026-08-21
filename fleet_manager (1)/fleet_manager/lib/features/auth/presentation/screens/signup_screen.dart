@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fleet_manager/core/constants/app_colors.dart';
 import 'package:fleet_manager/core/constants/app_strings.dart';
 import 'package:fleet_manager/core/router/app_router.dart';
+import 'package:fleet_manager/core/services/profile_service.dart';
 import 'package:fleet_manager/core/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -22,6 +23,13 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _loading = false;
+  String _role = 'admin';
+
+  static const _roleOptions = [
+    ('admin', 'Fleet Manager'),
+    ('dispatcher', 'Dispatcher'),
+    ('driver', 'Driver'),
+  ];
 
   @override
   void dispose() {
@@ -37,15 +45,34 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _loading = true);
     try {
       final res = await SupabaseService.client.auth.signUp(
-        password: _passwordController.text.trim(),
         email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        data: {
+          'full_name': _nameController.text.trim(),
+          'company': _companyController.text.trim(),
+          'role': _role,
+        },
       );
-      if (res.user != null) {
+
+      if (!mounted) return;
+
+      if (res.session != null && res.user != null) {
+        // Signed in immediately (email confirmation disabled on the project).
+        await ProfileService.fetchCurrent();
         if (!mounted) return;
+        final profile = ProfileService.current;
         context.go(AppRoutes.main);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(profile != null
+              ? 'Welcome, ${profile.firstName}! Account created as ${profile.roleLabel}.'
+              : 'Account created.'),
+        ));
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Check your email to confirm account')));
+        // Project requires email confirmation before a session exists.
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Account created. Check your email to confirm it, then sign in.'),
+        ));
+        context.pop();
       }
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -105,6 +132,18 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   validator: (v) =>
                       (v == null || v.isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: _role,
+                  decoration: const InputDecoration(
+                    labelText: 'Your role',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
+                  items: _roleOptions
+                      .map((r) => DropdownMenuItem(value: r.$1, child: Text(r.$2)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _role = v ?? _role),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

@@ -1,8 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Read MAPS_API_KEY out of assets/.env so it can be injected into
+// AndroidManifest.xml's ${MAPS_API_KEY} placeholder without hardcoding
+// the key in source control.
+val dotenv = Properties()
+val dotenvFile = rootProject.file("../assets/.env")
+if (dotenvFile.exists()) {
+    dotenvFile.inputStream().use { dotenv.load(it) }
+}
+val mapsApiKey: String = dotenv.getProperty("MAPS_API_KEY", "")
 
 android {
     namespace = "com.example.fleet_manager"
@@ -23,6 +35,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {

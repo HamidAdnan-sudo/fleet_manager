@@ -10,7 +10,9 @@ class LocationService {
   }
 
   static Future<Position> getCurrentPosition() async {
-    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    return await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
   }
 
   static Stream<Position> getPositionStream({LocationAccuracy accuracy = LocationAccuracy.best, int distanceFilter = 10}) {

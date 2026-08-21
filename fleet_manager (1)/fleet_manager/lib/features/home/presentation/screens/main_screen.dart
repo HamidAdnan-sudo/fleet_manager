@@ -17,19 +17,39 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late final List<Widget> _tabs;
 
+  final _homeKey = GlobalKey<HomeScreenState>();
+  final _tripsKey = GlobalKey<TripsScreenState>();
+  final _trucksKey = GlobalKey<TrucksScreenState>();
+
   @override
   void initState() {
     super.initState();
-    // _tabs initialised once — HomeScreen receives a callback to switch to Trucks tab
+    // Tabs stay alive in an IndexedStack (so scroll position/state is kept),
+    // which means they don't naturally know when data changed on another
+    // tab — each screen exposes reload() via these keys so switching to a
+    // tab always shows fresh data instead of a stale cached list.
     _tabs = [
-      HomeScreen(onAddTruckPressed: () => _switchTab(2)),
-      const TripsScreen(),
-      const TrucksScreen(),
+      HomeScreen(key: _homeKey),
+      TripsScreen(key: _tripsKey),
+      TrucksScreen(key: _trucksKey),
       const ProfileScreen(),
     ];
   }
 
-  void _switchTab(int index) => setState(() => _currentIndex = index);
+  void _switchTab(int index) {
+    setState(() => _currentIndex = index);
+    switch (index) {
+      case 0:
+        _homeKey.currentState?.reload();
+        break;
+      case 1:
+        _tripsKey.currentState?.reload();
+        break;
+      case 2:
+        _trucksKey.currentState?.reload();
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

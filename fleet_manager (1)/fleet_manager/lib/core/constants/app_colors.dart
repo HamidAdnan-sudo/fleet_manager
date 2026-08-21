@@ -34,6 +34,7 @@ class AppColors {
       case 'maintenance': return warningAmber;
       case 'idle':        return textSecondary;
       case 'delayed':     return highwayOrange;
+      case 'pending':     return textSecondary;
       default:            return textSecondary;
     }
   }
@@ -47,6 +48,7 @@ class AppColors {
       case 'maintenance': return 'Maintenance';
       case 'idle':        return 'Idle';
       case 'delayed':     return 'Delayed';
+      case 'pending':     return 'Pending';
       default:            return status;
     }
   }

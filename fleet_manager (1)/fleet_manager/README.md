@@ -1,25 +1,51 @@
-# fleet_manager
+# Fleet Manager
 
-A new Flutter project.
+A Flutter fleet management app (trucks, trips, drivers) backed by
+Supabase (Postgres + Auth). Accounts sign up with a role — Fleet
+Manager, Dispatcher, or Driver — and the app greets each user by name
+and role after login.
 
-## Getting Started
+## Setup
 
-This project is a starting point for a Flutter application.
+1. **Database.** Open your Supabase project → SQL Editor → New query,
+   paste the entire contents of [`supabase/schema.sql`](supabase/schema.sql),
+   and click Run. This creates the `profiles`, `trucks`, `trips` and
+   `locations` tables, the trigger that auto-creates a profile on
+   sign-up, and all Row Level Security policies. It's safe to re-run —
+   it drops and recreates the app's own tables without touching your
+   `auth.users` accounts.
 
-A few resources to get you started if this is your first Flutter project:
+2. **Credentials.** Copy `.env.example` to `assets/.env` (not the
+   project root — that's the file the app actually loads) and fill in:
+   - `SUPABASE_URL` / `SUPABASE_ANON_KEY` — Project Settings → API in
+     your Supabase dashboard.
+   - `MAPS_API_KEY` — a Google Maps API key, if you're using the map view.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+3. **Install & run.**
+   ```
+   flutter pub get
+   flutter run -d chrome   # or an Android/iOS device
+   ```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## How auth + database line up
 
-Setup notes for Supabase, Maps and GPS
- - Copy `.env.example` to `.env` and fill `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `MAPS_API_KEY`.
- - Run `flutter pub get`.
- - Android: add `MAPS_API_KEY` to your Android manifest placeholders or to `local.properties` and configure `android/app/build.gradle` manifestPlaceholders if needed. The manifest includes a `${MAPS_API_KEY}` placeholder.
- - iOS: add your Google Maps API key into AppDelegate or Info.plist if using native maps.
- - Initialize Supabase at app startup by calling `await SupabaseService.init()` before `runApp()`.
- - Request location permissions using `LocationService.requestPermission()` before accessing GPS.
+- Sign-up collects full name, company, and role, and passes them as
+  Supabase auth user metadata. A Postgres trigger (`on_auth_user_created`
+  in `schema.sql`) reads that metadata and creates the matching
+  `profiles` row automatically — no separate "create profile" API call
+  from the app.
+- Login and sign-up both fetch that profile immediately afterward
+  (`ProfileService`) and show a "Welcome back, {name}! Signed in as
+  {role}" message.
+- The home, trucks and trips screens all read live data from Supabase
+  (`FleetService`) — nothing is hardcoded/mock.
+- Row Level Security is enabled on every table: any signed-in user can
+  read/write fleet data (trucks, trips, locations), but can only edit
+  their own profile row.
+
+## Android Maps key
+
+`android/app/build.gradle.kts` reads `MAPS_API_KEY` out of
+`assets/.env` at build time and injects it into
+`AndroidManifest.xml`'s `${MAPS_API_KEY}` placeholder, so you only
+need to set the key in one place.

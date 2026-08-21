@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fleet_manager/core/constants/app_colors.dart';
 import 'package:fleet_manager/core/constants/app_strings.dart';
 import 'package:fleet_manager/core/router/app_router.dart';
+import 'package:fleet_manager/core/services/profile_service.dart';
 import 'package:fleet_manager/core/supabase_service.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -38,8 +39,14 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
       if (res.user != null) {
+        final profile = await ProfileService.fetchCurrent();
         if (!mounted) return;
         context.go(AppRoutes.main);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(profile != null
+              ? 'Welcome back, ${profile.firstName}! Signed in as ${profile.roleLabel}.'
+              : 'Welcome back!'),
+        ));
       } else {
         final msg = res.session == null ? 'Sign-in failed' : 'Signed in';
         if (!mounted) return;
@@ -53,6 +60,48 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final controller = TextEditingController(text: _emailController.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset password'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            prefixIcon: Icon(Icons.mail_outline_rounded),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Send reset link'),
+          ),
+        ],
+      ),
+    );
+    if (email == null || email.isEmpty || !email.contains('@')) return;
+    try {
+      await SupabaseService.client.auth.resetPasswordForEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset email sent to $email')),
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -129,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: _forgotPassword,
                     child: const Text('Forgot password?'),
                   ),
                 ),
